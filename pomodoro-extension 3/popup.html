@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pomo</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0e0e10; --surface: #18181c; --border: #2a2a30;
+      --accent: #ec4899; --green: #4ade80; --blue: #60a5fa;
+      --text: #f0ede8; --muted: #6b6872;
+    }
+    body {
+      width: 320px; background: var(--bg); color: var(--text);
+      font-family: 'DM Mono', monospace; position: relative; overflow: hidden;
+    }
+    body::before {
+      content: ''; position: fixed; top: -80px; left: 50%;
+      transform: translateX(-50%); width: 240px; height: 240px;
+      background: radial-gradient(circle, rgba(236,72,153,0.18) 0%, transparent 70%);
+      pointer-events: none; transition: background 0.6s;
+    }
+    body.mode-short::before { background: radial-gradient(circle, rgba(74,222,128,0.15) 0%, transparent 70%); }
+    body.mode-long::before  { background: radial-gradient(circle, rgba(96,165,250,0.15) 0%, transparent 70%); }
+
+    .container { padding: 20px 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+    .header { display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; }
+    .logo span { color: var(--accent); }
+    .session-badge {
+      font-size: 10px; color: var(--muted); background: var(--surface);
+      border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    .mode-tabs {
+      display: flex; gap: 5px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 10px; padding: 4px;
+    }
+    .mode-tab {
+      flex: 1; padding: 7px 4px; border: none; border-radius: 7px;
+      background: transparent; color: var(--muted); font-family: 'DM Mono', monospace;
+      font-size: 10px; cursor: pointer; transition: all 0.2s; text-align: center;
+    }
+    .mode-tab:hover:not(.active) { color: var(--text); background: var(--border); }
+    .mode-tab.active { background: var(--accent); color: #fff; font-weight: 500; }
+    .mode-tab.active.green { background: var(--green); color: #0e0e10; }
+    .mode-tab.active.blue  { background: var(--blue);  color: #0e0e10; }
+
+    .timer-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .ring-container { position: relative; width: 176px; height: 176px; }
+    .ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .ring-track { fill: none; stroke: var(--border); stroke-width: 4; }
+    .ring-progress {
+      fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round;
+      stroke-dasharray: 490; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear, stroke 0.4s;
+    }
+    .ring-progress.green { stroke: var(--green); }
+    .ring-progress.blue  { stroke: var(--blue); }
+    .timer-inner {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 2px;
+    }
+    .timer-display {
+      font-family: 'Syne', sans-serif; font-size: 44px; font-weight: 700;
+      letter-spacing: -2px; line-height: 1;
+    }
+    .mode-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+    .controls { display: flex; align-items: center; justify-content: center; gap: 14px; }
+    .btn-secondary {
+      width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border);
+      background: var(--surface); color: var(--muted); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; transition: all 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+    .btn-primary {
+      width: 66px; height: 66px; border-radius: 50%; border: none;
+      background: var(--accent); color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; transition: all 0.18s;
+      box-shadow: 0 0 0 0 rgba(236,72,153,0.3);
+    }
+    .btn-primary:hover { transform: scale(1.06); box-shadow: 0 0 0 10px rgba(236,72,153,0.1); }
+    .btn-primary:active { transform: scale(0.95); }
+    .btn-primary.green { background: var(--green); color: #0e0e10; }
+    .btn-primary.green:hover { box-shadow: 0 0 0 10px rgba(74,222,128,0.1); }
+    .btn-primary.blue  { background: var(--blue);  color: #0e0e10; }
+    .btn-primary.blue:hover  { box-shadow: 0 0 0 10px rgba(96,165,250,0.1); }
+
+    .session-dots { display: flex; align-items: center; justify-content: center; gap: 7px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background 0.3s; }
+    .dot.done { background: var(--accent); }
+  </style>
+</head>
+<body class="mode-focus">
+<div class="container">
+  <div class="header">
+    <div class="logo">po<span>mo</span></div>
+    <div class="session-badge" id="sessionBadge">session 1</div>
+  </div>
+
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="focus">Focus</button>
+    <button class="mode-tab green" data-mode="short">Short Break</button>
+    <button class="mode-tab blue"  data-mode="long">Long Break</button>
+  </div>
+
+  <div class="timer-wrap">
+    <div class="ring-container">
+      <svg class="ring-svg" viewBox="0 0 160 160">
+        <circle class="ring-track"    cx="80" cy="80" r="78" />
+        <circle class="ring-progress" cx="80" cy="80" r="78" id="ringProgress" />
+      </svg>
+      <div class="timer-inner">
+        <div class="timer-display" id="timerDisplay">25:00</div>
+        <div class="mode-label" id="modeLabel">Focus</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-secondary" id="btnReset" title="Reset">↺</button>
+    <button class="btn-primary" id="btnPlay">▶</button>
+    <button class="btn-secondary" id="btnSkip" title="Skip">⏭</button>
+  </div>
+
+  <div class="session-dots" id="sessionDots">
+    <div class="dot done"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
